@@ -1,4 +1,4 @@
-# encoding: UTF-8
+# encoding: utf-8
 
 require 'em-http-request'
 require 'when'
@@ -15,7 +15,7 @@ class TwitchAdaptor
     end
 
     def live?
-      !@raw_data['stream'].nil?
+      !@raw_data['stream'].nil? && !@raw_data['stream']['is_playlist']
     end
 
     def game_name
@@ -42,6 +42,12 @@ class TwitchAdaptor
       @raw_data['stream']['_id']
     end
 
+    def preview_url
+      return nil unless live?
+
+      @raw_data['stream']['preview']['medium']
+    end
+
     def hash
       username.hash
     end
@@ -58,12 +64,14 @@ class TwitchAdaptor
   def streams⏲(usernames)
     promises = usernames.map do |username|
       deferred = When.defer
+      puts "https://api.twitch.tv/kraken/streams/#{username}"
       req = EventMachine::HttpRequest.new("https://api.twitch.tv/kraken/streams/#{username}").get
 
       req.callback do
         logging_non_ok_responses(req, deferred) do
           data = JSON.parse(req.response)
           stream_info = StreamInfo.new(data)
+          #puts "fetched #{username}"
           deferred.resolver.resolve([username, stream_info])
         end
       end

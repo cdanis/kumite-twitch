@@ -1,4 +1,4 @@
-# encoding: UTF-8
+# encoding: utf-8
 
 require 'em-http-request'
 require 'when'
@@ -7,28 +7,28 @@ require 'logger'
 
 require './http-handler'
 
-class SlackAdapator
+class SlackAdaptor
   include HttpHandler
-  def initialize(options)
-    @read_token = options.fetch('read-token')
-    @webhook_url = options.fetch('webhook-url')
+  def initialize(options, mode)
+    # @read_token = options.fetch('read-token')
+    @webhook_url = options.fetch(mode == :prod ? 'webhook-url-prod' : 'webhook-url-testing')
     @logger = Logger.new("log/slack.log")
   end
 
-  def users⏲
-    deferred = When.defer
+  # def users⏲
+  #   deferred = When.defer
 
-    req = EventMachine::HttpRequest.new('https://slack.com/api/users.list').get(query: {token: @read_token})
+  #   req = EventMachine::HttpRequest.new('https://slack.com/api/users.list').get(query: {token: @read_token})
 
-    req.callback do
-      logging_non_ok_responses(req, deferred) do
-        data = JSON.parse(req.response)
-        deferred.resolver.resolve(data['members'])
-      end
-    end
+  #   req.callback do
+  #     logging_non_ok_responses(req, deferred) do
+  #       data = JSON.parse(req.response)
+  #       deferred.resolver.resolve(data['members'])
+  #     end
+  #   end
 
-    return deferred.promise
-  end
+  #   return deferred.promise
+  # end
 
   def notify⏲(params)
     deferred = When.defer

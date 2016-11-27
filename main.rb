@@ -19,8 +19,6 @@ class Bot
     settings = JSON.parse(File.read("settings.json"))
     @slacks = Hash[settings.collect { |v| [v.fetch('name'), SlackAdaptor.new(v, @mode)]}]
 
-    #@sa = SlackAdaptor.new(settings)
-
     @ta = TwitchAdaptor.new
     @streams = []
 
@@ -35,11 +33,8 @@ class Bot
         @twitches_to_slacks[twitch.downcase] << slack.fetch('name')
       end
     end
-    
-    # @twitch_usernames = ["minimaxz", "rooneg", "bmemike", "walkingeye", "tybs1508", "verylowsodium", "zheluzhe",
-    #                      "richshay", "lsv",  # goodstuff
-    #                      "oarsman79", "haumph", "jonnymagic00",  # requested by walkingeyerobot
-    #                     ]
+
+    @twitches_last_announce = Hash.new(Time.new(0))
 
   end
 
@@ -69,13 +64,18 @@ class Bot
 
   def notify_of_new_streams
     @streams.each do |stream|
-      puts "considering announcing #{stream.username} id #{stream.id} #{stream.stream_name}"
-      unless @announced_stream_ids.include?(stream.id)
+      id_announced_already = @announced_stream_ids.include?(stream.id)
+      username_last_announced_at = @twitches_last_announce[stream.username]
+      puts "considering announcing '#{stream.username}' id #{stream.id} -- '#{stream.stream_name}'"
+      puts "    id_announced_already: #{id_announced_already}"
+      puts "    username last announced at: #{username_last_announced_at}"
+      if !(id_announced_already) && (Time.now - username_last_announced_at > 3600)
         @twitches_to_slacks[stream.username].each do |slackname|
           puts "announcing #{stream.username} to #{slackname}"
           @slacks[slackname].notify⏲({text: ("<http://twitch.tv/#{stream.username}|twitch.tv/#{stream.username}> has gone live — #{stream.game_name} — \"#{stream.stream_name}\" <#{stream.preview_url}| >")})
         end
         @announced_stream_ids << stream.id
+        @twitches_last_announce[stream.username] = Time.now
       end
     end
     ann_str = @streams.map(&:id).join(',')
@@ -127,6 +127,8 @@ if $0 == __FILE__
   options = {:mode => :testing}
   OptionParser.new do |opts|
     opts.banner = "Usage: main.rb [options]"
+    # TODO instead of this being IDs it should just be usernames, and we initialize their
+    # announced time to be the current time.
     opts.on("-a", "--announced a,b,c", Array, "List of already announced stream ids") do |ann|
       options[:announced] = ann.map {|v| v.to_i}
     end

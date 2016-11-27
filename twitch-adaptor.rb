@@ -64,8 +64,8 @@ class TwitchAdaptor
   def streams⏲(usernames)
     promises = usernames.map do |username|
       deferred = When.defer
-      puts "https://api.twitch.tv/kraken/streams/#{username}"
-      req = EventMachine::HttpRequest.new("https://api.twitch.tv/kraken/streams/#{username}").get
+      #puts "https://api.twitch.tv/kraken/streams/#{username}"
+      req = EventMachine::HttpRequest.new("https://api.twitch.tv/kraken/streams/#{username}").get :head => {"Client-ID" => "reoery9uj6vb5g7wlzebfemopona2h8"}
 
       req.callback do
         logging_non_ok_responses(req, deferred) do
